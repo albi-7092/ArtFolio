@@ -1,9 +1,16 @@
 import 'package:artfolio/Profile.dart';
+import 'package:artfolio/refmodel.dart';
+import 'package:artfolio/upload_art.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:like_button/like_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'Login.dart';
+
+String profile_img = '';
+String about = '';
+List<dynamic> artsArray = [];
+List<dynamic> savedArray = [];
 
 class Home extends StatefulWidget {
   @override
@@ -11,10 +18,43 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  @override
+  void initState() {
+    // TODO: implement initState
+    loaddata();
+    super.initState();
+  }
+
   final PageController controller =
       PageController(initialPage: 0, keepPage: true);
 
   int selected_index = 0;
+  Future<void> loaddata() async {
+    final sp = await SharedPreferences.getInstance();
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    document_id = sp.getString('doc_id')!;
+    firestore.collection('USER').doc(document_id).get().then(
+      (DocumentSnapshot documentSnapshot) {
+        if (documentSnapshot.exists) {
+          setState(() {
+            name = documentSnapshot.get('name');
+            profile_img = documentSnapshot.get('profile_img');
+            about = documentSnapshot.get('about');
+            artsArray = documentSnapshot.get('arts');
+            savedArray = documentSnapshot.get('saved');
+            // print('name :$name');
+            // print('Array:$artsArray');
+          });
+          // String desc = '';
+          // int length = artsArray.length;
+          // for (int i = 0; i < length; i++) {
+          //   desc = artsArray[i]['descriptor'];
+          //   print('Description :$desc');
+          // }
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +64,14 @@ class _HomeState extends State<Home> {
         title: const Text('ArtFolio'),
         actions: [
           InkWell(
-            child: const CircleAvatar(
-              backgroundImage: NetworkImage(
-                  'https://pbs.twimg.com/profile_images/1649088268355653634/yRnzTnJg_400x400.jpg'),
+            child: Column(
+              children: [
+                profile_img == ''
+                    ? const CircleAvatar(
+                        backgroundImage:
+                            AssetImage('images/Unknown_person.jpg'))
+                    : CircleAvatar(backgroundImage: NetworkImage(profile_img)),
+              ],
             ),
             onTap: () {
               setState(() {
@@ -48,6 +93,61 @@ class _HomeState extends State<Home> {
           Container(color: Colors.white, child: page1()),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(builder: (ctx) {
+            return upload_art();
+          }));
+        },
+        backgroundColor: Color(0xFF17203A),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+Future<void> updatesaved(BuildContext ctx, image_url, String description,
+    String userprofile_url) async {
+  try {
+    final sp = await SharedPreferences.getInstance();
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    document_id = sp.getString('doc_id')!;
+    final DocumentReference document =
+        firestore.collection('USER').doc(document_id);
+
+    // Add new values to the 'arts' array
+    document.update(
+      {
+        'saved': FieldValue.arrayUnion(
+          [
+            {
+              'url': image_url,
+              'descriptor': description,
+              'user_profile_url': userprofile_url
+            }
+          ],
+        ),
+      },
+    );
+
+    // Update other fields if needed
+  } catch (e) {
+    showDialog(
+      context: ctx,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Center(child: Text('ArtFolio')),
+          content: Text('$e'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('OK'),
+            )
+          ],
+        );
+      },
     );
   }
 }
@@ -60,74 +160,127 @@ class page0 extends StatefulWidget {
 class _page0State extends State<page0> {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(
-          height: 10,
-        ),
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundImage: NetworkImage(
-                    'https://c.ndtvimg.com/2023-06/pca0th08_-prithviraj_625x300_27_June_23.jpg'),
-              ),
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text(
-                  'Prithviraj Sukumaran',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              )
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SizedBox(
-            width: double.infinity,
-            height: 300,
-            child: Image.network(
-                'https://akm-img-a-in.tosshub.com/indiatoday/images/story/202301/prithviraj_suriya_jyotika-one_one.jpg?VersionId=XmLflQICpgQofNi0W.9iRO1DEQ2KCkuk'),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              LikeButton(
-                size: 30,
-                likeBuilder: (bool isLiked) {
-                  return Icon(
-                    Icons.favorite,
-                    color: isLiked ? Colors.red : Colors.grey,
-                    size: 30,
-                  );
-                },
-              ),
-              IconButton(onPressed: () {}, icon: Icon(Icons.message)),
-              IconButton(onPressed: () {}, icon: Icon(Icons.send)),
-            ],
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 10,
-                backgroundImage: NetworkImage(
-                    'https://pbs.twimg.com/profile_images/1649088268355653634/yRnzTnJg_400x400.jpg'),
-              ),
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('Everyone has ups and downs. ...'),
-              )
-            ],
-          ),
-        ),
-      ],
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance.collection('USER').snapshots(),
+      builder: (context, AsyncSnapshot snapshot) {
+        if (snapshot.hasData) {
+          return ListView.builder(
+            itemCount: snapshot.data.docs.length,
+            itemBuilder: (context, index) {
+              final DocumentSnapshot userSnap = snapshot.data.docs[index];
+              String userProfileUrl = userSnap['profile_img'];
+              String publisherNamed = userSnap['name'];
+              List<dynamic> artsArray = userSnap['arts'];
+
+              return Column(
+                children: [
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: artsArray.length,
+                    itemBuilder: (context, index) {
+                      String artImageUrl = artsArray[index]['url'];
+                      String artDescription = artsArray[index]['descriptor'];
+
+                      return Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Container(
+                          // color: Colors.amber,
+                          width: 500,
+                          height: 620,
+                          child: Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage:
+                                          NetworkImage(userProfileUrl),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(
+                                        publisherNamed,
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                height: 410,
+                                width: 350,
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    fit: BoxFit.cover,
+                                    image: NetworkImage(artImageUrl),
+                                  ),
+                                ),
+                              ),
+                              Divider(),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Row(
+                                        children: [
+                                          LikeButton(),
+                                          IconButton(
+                                              onPressed: () {},
+                                              icon: Icon(Icons.comment)),
+                                          IconButton(
+                                              onPressed: () {},
+                                              icon: Icon(Icons.share)),
+                                          IconButton(
+                                              onPressed: () {
+                                                print(artImageUrl);
+                                                //call on there
+                                                updatesaved(
+                                                    context,
+                                                    artImageUrl,
+                                                    artDescription,
+                                                    userProfileUrl);
+                                              },
+                                              icon: Icon(Icons.bookmark))
+                                        ],
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundImage:
+                                              NetworkImage(userProfileUrl),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Text(
+                                            artDescription,
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          return Container();
+        }
+      },
     );
   }
 }
@@ -142,23 +295,26 @@ class page1 extends StatelessWidget {
           const SizedBox(
             height: 20,
           ),
-          const CircleAvatar(
-            radius: 90,
-            backgroundImage: NetworkImage(
-              'https://pbs.twimg.com/profile_images/1649088268355653634/yRnzTnJg_400x400.jpg',
-            ),
+          Column(
+            children: [
+              profile_img == ''
+                  ? CircleAvatar(
+                      radius: 90,
+                      backgroundImage: AssetImage('images/Unknown_person.jpg'))
+                  : CircleAvatar(
+                      radius: 90, backgroundImage: NetworkImage(profile_img)),
+            ],
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(8.0),
             child: Text(
-              'Mammotty',
+              name,
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(8.0),
-            child: Text(
-                "“Just one small positive thought in the morning can change your whole day.” — ..."),
+            child: Text(about),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -194,54 +350,131 @@ class page1 extends StatelessWidget {
           const TabBar(
             tabs: [
               Tab(
-                  icon: Icon(
-                Icons.add_a_photo,
-                color: Color(0xFF17203A),
-              )),
+                icon: Icon(
+                  Icons.image,
+                  color: Color(0xFF17203A),
+                ),
+              ),
               Tab(
-                  icon: Icon(
-                Icons.save,
-                color: Color(0xFF17203A),
-              )),
+                icon: Icon(
+                  Icons.book,
+                  color: Color(0xFF17203A),
+                ),
+              ),
             ],
           ),
           Expanded(
             child: TabBarView(
               children: [
-                Container(
-                  width: 200,
-                  height: 300,
-                  child: ListView(
-                    children: [
-                      Padding(
-                        padding:
-                            EdgeInsets.only(left: 120, right: 30, top: 120),
-                        child: Text("you have not posted any arts!"),
-                      ),
-                    ],
-                  ),
-                ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
                     width: 200,
                     height: 300,
-                    child: ListView(
-                      children: const [
-                        Image(
-                          image: NetworkImage(
-                            'https://c.ndtvimg.com/2023-06/pca0th08_-prithviraj_625x300_27_June_23.jpg',
+                    child: artsArray.isEmpty
+                        ? ListView(
+                            children: const [
+                              Padding(
+                                padding: EdgeInsets.only(
+                                    left: 120, right: 30, top: 120),
+                                child: Text("Upload your memmory.."),
+                              ),
+                            ],
+                          )
+                        : ListView.separated(
+                            itemBuilder: (ctx, index) {
+                              String imageUrl = artsArray[index]['url'];
+                              String descriptor =
+                                  artsArray[index]['descriptor'];
+                              return Column(
+                                children: [
+                                  Container(
+                                    height: 500,
+                                    width: 500,
+                                    decoration: BoxDecoration(
+                                      image: DecorationImage(
+                                        fit: BoxFit.cover,
+                                        image: NetworkImage(imageUrl),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundImage:
+                                              NetworkImage(profile_img),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Text(
+                                            descriptor,
+                                            style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              );
+                            },
+                            separatorBuilder: (context, index) => Divider(),
+                            itemCount: artsArray.length,
                           ),
-                        ),
-                        Divider(),
-                        Image(
-                          image: NetworkImage(
-                            'https://akm-img-a-in.tosshub.com/indiatoday/images/story/202301/prithviraj_suriya_jyotika-one_one.jpg?VersionId=XmLflQICpgQofNi0W.9iRO1DEQ2KCkuk',
-                          ),
-                        )
-                      ],
-                    ), // Replace this with your content
                   ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: savedArray.isEmpty
+                      ? const Center(child: Text('you have not saved any arts'))
+                      : GridView.builder(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2, // Number of columns in the grid
+                            mainAxisSpacing: 10.0, // Spacing between rows
+                            crossAxisSpacing: 10.0, // Spacing between columns
+                          ),
+                          itemCount:
+                              savedArray.length, // Number of items in the grid
+                          itemBuilder: (BuildContext context, int index) {
+                            return InkWell(
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    //color: Colors.blue,
+                                    child:
+                                        Image.network(savedArray[index]['url']),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                        left: 8.0, top: 140),
+                                    child: CircleAvatar(
+                                      backgroundColor: Color(0xFF17203A),
+                                      backgroundImage: NetworkImage(
+                                        savedArray[index]['user_profile_url'],
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              onTap: () {
+                                // print(savedArray[index]['descriptor']);
+                                Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (BuildContext) {
+                                  return refmodel(
+                                      savedArray[index]['url'],
+                                      savedArray[index]['user_profile_url'],
+                                      savedArray[index]['descriptor']);
+                                }));
+                              },
+                            );
+                          },
+                        ),
                 ),
               ],
             ),

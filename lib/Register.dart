@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import './login.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'Home.dart';
 
 class Register extends StatefulWidget {
@@ -26,77 +26,93 @@ class _RegisterState extends State<Register> {
   XFile? image;
   bool stat = true;
   TextEditingController Name = TextEditingController();
-
   TextEditingController user_Name = TextEditingController();
-
   TextEditingController email = TextEditingController();
-
   TextEditingController password = TextEditingController();
   TextEditingController passwordconfirm = TextEditingController();
-
-  TextEditingController age = TextEditingController();
-  String AGE = '';
-
-  TextEditingController DL_No = TextEditingController();
   final _formkey = GlobalKey<FormState>();
   String doc = '';
+  String downloadurl = '';
   //
-  // CollectionReference user01 = FirebaseFirestore.instance.collection('USER');
-  // FirebaseAuth auth = FirebaseAuth.instance;
-  // final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  CollectionReference user01 = FirebaseFirestore.instance.collection('USER');
+  FirebaseAuth auth = FirebaseAuth.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseStorage storage = FirebaseStorage.instance;
 
-  // Future<void> add_user(BuildContext context) async {
-  //   final data = {
-  //     'name': Name.text,
-  //     'user_name': user_Name.text,
-  //     'password': passwordconfirm.text,
-  //     'email': email.text,
-  //     'dl_no': DL_No.text,
-  //     'age': age.text,
-  //     'doc_id': '',
-  //     'car_book_id': '',
-  //     'status': '',
-  //   };
-  //   try {
-  //     await auth.createUserWithEmailAndPassword(
-  //         email: email.text, password: passwordconfirm.text);
+  Future<String> uploadImage(File imageFile) async {
+    String name_loc = user_Name.text;
+    try {
+      String fileName = name_loc.toString();
+      Reference reference =
+          storage.ref().child('profile_image/$name_loc/$fileName');
+      await reference.putFile(imageFile);
+      String downloaduRl = await reference.getDownloadURL();
 
-  //     await user01.add(data).then(
-  //       (value) {
-  //         doc = value.id;
-  //         print(doc);
-  //       },
-  //     );
-  //     final DocumentReference document = firestore.collection('USER').doc(doc);
-  //     document.update({'doc_id': doc});
-  //     Navigator.of(context).pushAndRemoveUntil(
-  //         MaterialPageRoute(builder: (ctx) => HOME()), (route) => false);
-  //     register_save();
-  //   } on Exception catch (e) {
-  //     showDialog(
-  //       context: context,
-  //       builder: (ctx) {
-  //         return AlertDialog(
-  //           title: const Center(child: Text('Auto Hire')),
-  //           content: Text(
-  //             '$e',
-  //             // style: TextStyle(color: Colors.red),
-  //           ),
-  //           actions: [
-  //             TextButton(
-  //                 onPressed: () {
-  //                   Navigator.of(ctx).pop();
-  //                 },
-  //                 child: const Text('OK'))
-  //           ],
-  //         );
-  //       },
-  //     );
-  //   }
+      // Save image URL to Firestore
+      //await imagesCollection.add({'url': downloadURL});
+      return downloaduRl;
+    } catch (e) {
+      print('Error uploading image: $e');
+      return '';
+    }
+  }
 
-  //   // DocumentReference documentRef = user01.doc(doc);
-  //   // documentRef.update({'doc_id': doc});
-  // }
+  Future<void> add_user(BuildContext context) async {
+    final data = {
+      'name': Name.text,
+      'email': email.text,
+      'user_name': user_Name.text,
+      'profile_img': '',
+      'arts': [],
+      'about': '',
+      'doc_id': '',
+    };
+    try {
+      await auth.createUserWithEmailAndPassword(
+          email: email.text, password: passwordconfirm.text);
+
+      downloadurl = await uploadImage(fileimage!);
+
+      await user01.add(data).then(
+        (value) {
+          doc = value.id;
+          print(doc);
+        },
+      );
+
+      final DocumentReference document = firestore.collection('USER').doc(doc);
+      //document.update({'img': downloadurl});
+      document.update({'doc_id': doc, 'profile_img': downloadurl});
+
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (ctx) => Home()), (route) => false);
+      register_save();
+    } on Exception catch (e) {
+      showDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            title: const Center(child: Text('Auto Hire')),
+            content: Text(
+              '$e',
+              // style: TextStyle(color: Colors.red),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    print(e);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('OK'))
+            ],
+          );
+        },
+      );
+    }
+
+    // DocumentReference documentRef = user01.doc(doc);
+    // documentRef.update({'doc_id': doc});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -303,11 +319,29 @@ class _RegisterState extends State<Register> {
                                   backgroundColor: const Color(0xFF17203A)),
                               onPressed: () {
                                 if (_formkey.currentState!.validate() &&
-                                    fileimage != null) {
-                                  // add_user(context);
-                                  print('all set');
+                                    image != null) {
+                                  add_user(context);
                                 } else {
-                                  //else
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) {
+                                      return AlertDialog(
+                                        title: const Center(
+                                            child: Text('ArtFolio')),
+                                        content: const Text(
+                                          'Image is Requiered for Registration Purpose',
+                                          // style: TextStyle(color: Colors.red),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () {
+                                                Navigator.of(ctx).pop();
+                                              },
+                                              child: const Text('OK'))
+                                        ],
+                                      );
+                                    },
+                                  );
                                 }
                               },
                               child: const Text('Register'),

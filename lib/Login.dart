@@ -3,9 +3,10 @@
 // import 'package:flutter/foundation.dart';
 import 'package:artfolio/Home.dart';
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import './register.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Login extends StatefulWidget {
   @override
@@ -17,99 +18,103 @@ class _LoginState extends State<Login> {
   TextEditingController email = TextEditingController();
   TextEditingController password = TextEditingController();
   //FirebaseAuth auth = FirebaseAuth.instance;
-  String dox = 'logged';
+  String dox = '';
   var stat;
 
-  // Future<void> SighnIn(BuildContext context) async {
-  //   try {
-  //     UserCredential userCredential = await FirebaseAuth.instance
-  //         .signInWithEmailAndPassword(
-  //             email: email.text, password: password.text);
+  Future<void> SighnIn(BuildContext context) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+              email: email.text, password: password.text);
 
-  //     QuerySnapshot snapshot = await FirebaseFirestore.instance
-  //         .collection('USER')
-  //         .where('email', isEqualTo: email.text)
-  //         .get();
-  //     if (snapshot.size > 0) {
-  //       dox = snapshot.docs[0].id;
-  //       if (kDebugMode) {
-  //         print(dox);
-  //       }
-  //     }
-  //     print('doc_id:$dox');
-  //     // ignore: unnecessary_null_comparison
-  //     if (dox != '' || dox != null) {
-  //       login_Save();
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('USER')
+          .where('email', isEqualTo: email.text)
+          .get();
+      if (snapshot.size > 0) {
+        dox = snapshot.docs[0].id;
 
-  //       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) {
-  //         return HOME();
-  //       }));
-  //     }
-  //   } on FirebaseAuthException catch (e) {
-  //     if (e.code == 'user-not-found') {
-  //       print('user not found');
-  //       showDialog(
-  //         context: context,
-  //         builder: (ctx) {
-  //           return AlertDialog(
-  //             title: const Center(child: Text('Auto Hire')),
-  //             content: const Text(
-  //               'user not found',
-  //               // style: TextStyle(color: Colors.red),
-  //             ),
-  //             actions: [
-  //               TextButton(
-  //                   onPressed: () {
-  //                     Navigator.of(ctx).pop();
-  //                   },
-  //                   child: const Text('OK'))
-  //             ],
-  //           );
-  //         },
-  //       );
-  //     } else if (e.code == 'wrong-password') {
-  //       print('wrong password');
-  //       showDialog(
-  //         context: context,
-  //         builder: (ctx) {
-  //           return AlertDialog(
-  //             title: const Center(child: Text('Auto Hire')),
-  //             content: const Text(
-  //               'wrong password',
-  //             ),
-  //             actions: [
-  //               TextButton(
-  //                   onPressed: () {
-  //                     Navigator.of(ctx).pop();
-  //                   },
-  //                   child: const Text('OK'))
-  //             ],
-  //           );
-  //         },
-  //       ); //SHOW
-  //     } else {
-  //       print('invalid email id');
-  //       showDialog(
-  //         context: context,
-  //         builder: (ctx) {
-  //           return AlertDialog(
-  //             title: const Center(child: Text('Auto Hire')),
-  //             content: const Text(
-  //               'Invalid Email ID',
-  //             ),
-  //             actions: [
-  //               TextButton(
-  //                   onPressed: () {
-  //                     Navigator.of(ctx).pop();
-  //                   },
-  //                   child: const Text('OK'))
-  //             ],
-  //           );
-  //         },
-  //       );
-  //     }
-  //   }
-  // }
+        print(dox);
+      }
+      print('doc_id:$dox');
+      // ignore: unnecessary_null_comparison
+      if (dox != '' || dox != null) {
+        login_Save();
+
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) {
+          return Home();
+        }));
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        print('user not found');
+        showDialog(
+          context: context,
+          builder: (ctx) {
+            return AlertDialog(
+              title: const Center(child: Text('Auto Hire')),
+              content: const Text(
+                'user not found',
+                // style: TextStyle(color: Colors.red),
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                    },
+                    child: const Text('OK'))
+              ],
+            );
+          },
+        );
+      } else if (e.code == 'wrong-password') {
+        print('wrong password');
+        showDialog(
+          context: context,
+          builder: (ctx) {
+            return AlertDialog(
+              title: const Center(child: Text('Auto Hire')),
+              content: const Text(
+                'wrong password',
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                    },
+                    child: const Text('OK'))
+              ],
+            );
+          },
+        ); //SHOW
+      } else if (e.code == 'cloud_firestore/unavailable') {
+        // Firestore is currently unavailable, let's retry the login after a delay.
+        await Future.delayed(
+            Duration(seconds: 2)); // Wait for 2 seconds before retrying.
+        await SighnIn(context); // Retry the login process.
+      } else {
+        print('invalid email id');
+        showDialog(
+          context: context,
+          builder: (ctx) {
+            return AlertDialog(
+              title: const Center(child: Text('Auto Hire')),
+              content: const Text(
+                'Invalid Email ID',
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                    },
+                    child: const Text('OK'))
+              ],
+            );
+          },
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -206,8 +211,7 @@ class _LoginState extends State<Login> {
                               backgroundColor: const Color(0xFF17203A)),
                           onPressed: () {
                             if (_formkey.currentState!.validate()) {
-                              //SighnIn(context);
-                              login_Save();
+                              SighnIn(context);
                             }
                           },
                           child: const Text("Login"),
@@ -274,8 +278,5 @@ class _LoginState extends State<Login> {
       'doc_id',
       dox,
     );
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) {
-      return Home();
-    }));
   }
 }
