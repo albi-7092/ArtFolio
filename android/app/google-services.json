@@ -1,33 +1,33 @@
 {
   "project_info": {
-    "project_number": "141450107718",
-    "project_id": "artfolio-b7eb6",
-    "storage_bucket": "artfolio-b7eb6.appspot.com"
+    "project_number": "216228462896",
+    "project_id": "artfolio-6d497",
+    "storage_bucket": "artfolio-6d497.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:141450107718:android:4a6dd4be063a354496a347",
+        "mobilesdk_app_id": "1:216228462896:android:6aecc2c4c3d1ea091f48f5",
         "android_client_info": {
           "package_name": "com.example.artfolio"
         }
       },
       "oauth_client": [
         {
-          "client_id": "141450107718-1uifqgoliljfr7ekr2chsqcchkn7di7i.apps.googleusercontent.com",
+          "client_id": "216228462896-jv2nk49kudniri1qs773n7kufkace8mo.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBUg1oyRSA76TzNanMaC-2O0d424XJN8lI"
+          "current_key": "AIzaSyAN4-3S0S1ZjXGtahWIrDzWwr2sGsY90IU"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "141450107718-1uifqgoliljfr7ekr2chsqcchkn7di7i.apps.googleusercontent.com",
+              "client_id": "216228462896-jv2nk49kudniri1qs773n7kufkace8mo.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

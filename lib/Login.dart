@@ -20,8 +20,12 @@ class _LoginState extends State<Login> {
   //FirebaseAuth auth = FirebaseAuth.instance;
   String dox = '';
   var stat;
+  bool load = false;
 
-  Future<void> SighnIn(BuildContext context) async {
+  Future<void> Login(BuildContext context) async {
+    setState(() {
+      load = true;
+    });
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
@@ -45,14 +49,20 @@ class _LoginState extends State<Login> {
           return Home();
         }));
       }
+      setState(() {
+        load = false;
+      });
     } on FirebaseAuthException catch (e) {
+      setState(() {
+        load = false;
+      });
       if (e.code == 'user-not-found') {
         print('user not found');
         showDialog(
           context: context,
           builder: (ctx) {
             return AlertDialog(
-              title: const Center(child: Text('Auto Hire')),
+              title: const Center(child: Text('ArtFolio')),
               content: const Text(
                 'user not found',
                 // style: TextStyle(color: Colors.red),
@@ -68,12 +78,15 @@ class _LoginState extends State<Login> {
           },
         );
       } else if (e.code == 'wrong-password') {
+        setState(() {
+          load = false;
+        });
         print('wrong password');
         showDialog(
           context: context,
           builder: (ctx) {
             return AlertDialog(
-              title: const Center(child: Text('Auto Hire')),
+              title: const Center(child: Text('ArtFolio')),
               content: const Text(
                 'wrong password',
               ),
@@ -91,14 +104,18 @@ class _LoginState extends State<Login> {
         // Firestore is currently unavailable, let's retry the login after a delay.
         await Future.delayed(
             Duration(seconds: 2)); // Wait for 2 seconds before retrying.
-        await SighnIn(context); // Retry the login process.
+        await Login(context);
+        print('here'); // Retry the login process.
       } else {
+        setState(() {
+          load = false;
+        });
         print('invalid email id');
         showDialog(
           context: context,
           builder: (ctx) {
             return AlertDialog(
-              title: const Center(child: Text('Auto Hire')),
+              title: const Center(child: Text('ArtFolio')),
               content: const Text(
                 'Invalid Email ID',
               ),
@@ -211,10 +228,16 @@ class _LoginState extends State<Login> {
                               backgroundColor: const Color(0xFF17203A)),
                           onPressed: () {
                             if (_formkey.currentState!.validate()) {
-                              SighnIn(context);
+                              if (load == false) {
+                                Login(context);
+                              }
                             }
                           },
-                          child: const Text("Login"),
+                          child: load == false
+                              ? const Text("Login")
+                              : const CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
                         ),
                       ),
                     ),

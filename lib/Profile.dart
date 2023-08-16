@@ -17,7 +17,7 @@ class _ProfileState extends State<Profile> {
   TextEditingController name_field = TextEditingController();
   TextEditingController username = TextEditingController();
   TextEditingController about = TextEditingController();
-
+  final FirebaseStorage storage = FirebaseStorage.instance;
   final ImagePicker picker = ImagePicker();
   String document_id = '';
   File? fileimage;
@@ -28,6 +28,7 @@ class _ProfileState extends State<Profile> {
   String Email_ID = '';
   String About = '';
   String newurl = '';
+  bool controller = false;
 
   @override
   void initState() {
@@ -37,6 +38,9 @@ class _ProfileState extends State<Profile> {
   }
 
   Future<void> updatedata() async {
+    setState(() {
+      controller = true;
+    });
     try {
       final sp = await SharedPreferences.getInstance();
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -58,7 +62,22 @@ class _ProfileState extends State<Profile> {
           'about': about.text,
         });
       }
+      if (fileimage != null) {
+        String downloadurl = await uploadImage(fileimage!);
+        print(downloadurl);
+        if (downloadurl.isNotEmpty) {
+          document.update({
+            'profile_img': downloadurl,
+          });
+        }
+      }
+      setState(() {
+        controller = false;
+      });
     } catch (e) {
+      setState(() {
+        controller = false;
+      });
       showDialog(
         context: context,
         builder: (ctx) {
@@ -102,7 +121,7 @@ class _ProfileState extends State<Profile> {
 
   Future<void> pickImage() async {
     try {
-      image = await picker.pickImage(source: ImageSource.camera);
+      image = await picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         setState(() {
           fileimage = File(image!.path);
@@ -113,77 +132,21 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-  Future<void> updateImageInFirebaseStorage() async {
-    String name_loc = UserName.toString();
-    if (fileimage != null) {
-      String fileName = name_loc.toString();
-      try {
-        final Reference storageReference = FirebaseStorage.instance
-            .ref()
-            .child('profile_image/$UserName/$fileName');
-        UploadTask uploadTask = storageReference.putFile(fileimage!);
-        TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
-
-        String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-        setState(() {
-          newurl = downloadUrl;
-        });
-
-        print("Image updated successfully. New Download URL: $newurl");
-        if (newurl.isNotEmpty) {
-          update();
-        }
-      } catch (e) {
-        print("Error updating image in Firebase Storage: $e");
-        showDialog(
-          context: context,
-          builder: (ctx) {
-            return AlertDialog(
-              title: const Center(child: Text('Auto Hire')),
-              content: Text(
-                '$e',
-              ),
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                    },
-                    child: const Text('OK'))
-              ],
-            );
-          },
-        );
-      }
-    }
-  }
-
-  Future<void> update() async {
+  Future<String> uploadImage(File imageFile) async {
+    String name_loc = name;
     try {
-      final sp = await SharedPreferences.getInstance();
-      final FirebaseFirestore firestore = FirebaseFirestore.instance;
-      document_id = sp.getString('doc_id')!;
-      final DocumentReference document =
-          firestore.collection('USER').doc(document_id);
-      document.update({'profile_img': newurl});
+      String fileName = name_loc.toString();
+      Reference reference =
+          storage.ref().child('profile_image/$name_loc/$fileName');
+      await reference.putFile(imageFile);
+      String downloaduRl = await reference.getDownloadURL();
+
+      // Save image URL to Firestore
+      //await imagesCollection.add({'url': downloadURL});
+      return downloaduRl;
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            title: const Center(child: Text('ArtFolio')),
-            content: Text(
-              '$e',
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                  },
-                  child: const Text('OK'))
-            ],
-          );
-        },
-      );
+      print('Error uploading image: $e');
+      return '';
     }
   }
 
@@ -207,38 +170,28 @@ class _ProfileState extends State<Profile> {
                 children: [
                   Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 75,
-                        child: ClipOval(
-                          child: profile_img == ''
-                              ? Image.asset(
-                                  'images/Unknown_person.jpg',
-                                  width: 150,
-                                  height: 150,
-                                  fit: BoxFit.cover,
+                      profile_img == '' && fileimage == null
+                          ? CircleAvatar(
+                              radius: 75,
+                              backgroundImage:
+                                  AssetImage('images/Unknown_person.jpg'),
+                            )
+                          : fileimage != null
+                              ? CircleAvatar(
+                                  radius: 75,
+                                  backgroundImage: FileImage(fileimage!),
                                 )
-                              : fileimage == null
-                                  ? Image.network(
-                                      profile_img,
-                                      width: 150,
-                                      height: 150,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Image.file(
-                                      fileimage!,
-                                      width: 150,
-                                      height: 150,
-                                      fit: BoxFit.cover,
-                                    ),
-                        ),
-                      ),
+                              : CircleAvatar(
+                                  radius: 75,
+                                  backgroundImage: NetworkImage(profile_img),
+                                ),
                       Padding(
                         padding: const EdgeInsets.only(left: 120, top: 110),
                         child: IconButton(
                             onPressed: () {
                               pickImage();
                             },
-                            icon: const Icon(Icons.camera_alt)),
+                            icon: const Icon(Icons.edit)),
                       )
                     ],
                   ),
@@ -322,13 +275,13 @@ class _ProfileState extends State<Profile> {
                                 backgroundColor: const Color(0xFF17203A),
                               ),
                               onPressed: () {
-                                if (fileimage != null) {
-                                  updateImageInFirebaseStorage();
-                                }
                                 updatedata();
-                                Navigator.of(context).pop();
                               },
-                              child: const Text('update'),
+                              child: controller == false
+                                  ? Text('update')
+                                  : CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
                             ),
                           ),
                         ),

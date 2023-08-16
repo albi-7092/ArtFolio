@@ -19,10 +19,9 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
+  bool load = false;
   final ImagePicker picker = ImagePicker();
-
   File? fileimage;
-
   XFile? image;
   bool stat = true;
   TextEditingController Name = TextEditingController();
@@ -58,6 +57,9 @@ class _RegisterState extends State<Register> {
   }
 
   Future<void> add_user(BuildContext context) async {
+    setState(() {
+      load = true;
+    });
     final data = {
       'name': Name.text,
       'email': email.text,
@@ -66,13 +68,11 @@ class _RegisterState extends State<Register> {
       'arts': [],
       'about': '',
       'doc_id': '',
+      'saved': [],
     };
     try {
       await auth.createUserWithEmailAndPassword(
           email: email.text, password: passwordconfirm.text);
-
-      downloadurl = await uploadImage(fileimage!);
-
       await user01.add(data).then(
         (value) {
           doc = value.id;
@@ -81,18 +81,29 @@ class _RegisterState extends State<Register> {
       );
 
       final DocumentReference document = firestore.collection('USER').doc(doc);
-      //document.update({'img': downloadurl});
-      document.update({'doc_id': doc, 'profile_img': downloadurl});
 
+      document.update({
+        'doc_id': doc,
+      });
+      //downloadurl = await uploadImage(fileimage!);
+      // print('image url :$downloadurl');
+      // document.update({'profile_img': downloadurl});
+      register_save();
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (ctx) => Home()), (route) => false);
-      register_save();
+
+      setState(() {
+        load = false;
+      });
     } on Exception catch (e) {
+      setState(() {
+        load = false;
+      });
       showDialog(
         context: context,
         builder: (ctx) {
           return AlertDialog(
-            title: const Center(child: Text('Auto Hire')),
+            title: const Center(child: Text('ArtFolio')),
             content: Text(
               '$e',
               // style: TextStyle(color: Colors.red),
@@ -134,15 +145,7 @@ class _RegisterState extends State<Register> {
                           Column(
                             children: [
                               Text(
-                                'Here to Get',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 30,
-                                    color: Colors.black),
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                'Welcomed !',
+                                'ArtFolio',
                                 style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 30,
@@ -318,9 +321,10 @@ class _RegisterState extends State<Register> {
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF17203A)),
                               onPressed: () {
-                                if (_formkey.currentState!.validate() &&
-                                    image != null) {
-                                  add_user(context);
+                                if (_formkey.currentState!.validate()) {
+                                  if (load == false) {
+                                    add_user(context);
+                                  }
                                 } else {
                                   showDialog(
                                     context: context,
@@ -344,7 +348,11 @@ class _RegisterState extends State<Register> {
                                   );
                                 }
                               },
-                              child: const Text('Register'),
+                              child: load == false
+                                  ? Text('Register')
+                                  : CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
                             ),
                           ),
                         ),

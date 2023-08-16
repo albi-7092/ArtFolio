@@ -21,7 +21,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     // TODO: implement initState
-    loaddata();
+
     super.initState();
   }
 
@@ -58,6 +58,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    loaddata();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF17203A),
@@ -107,7 +108,7 @@ class _HomeState extends State<Home> {
 }
 
 Future<void> updatesaved(BuildContext ctx, image_url, String description,
-    String userprofile_url) async {
+    String userprofile_url, String amount) async {
   try {
     final sp = await SharedPreferences.getInstance();
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -123,7 +124,8 @@ Future<void> updatesaved(BuildContext ctx, image_url, String description,
             {
               'url': image_url,
               'descriptor': description,
-              'user_profile_url': userprofile_url
+              'user_profile_url': userprofile_url,
+              'amount': amount,
             }
           ],
         ),
@@ -158,6 +160,25 @@ class page0 extends StatefulWidget {
 }
 
 class _page0State extends State<page0> {
+  bid(BuildContext context, String x) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Center(child: Text('ArtFolio')),
+          content: Text("current bid =$x"),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('OK'))
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
@@ -181,6 +202,7 @@ class _page0State extends State<page0> {
                     itemBuilder: (context, index) {
                       String artImageUrl = artsArray[index]['url'];
                       String artDescription = artsArray[index]['descriptor'];
+                      String amount = artsArray[index]['amount'];
 
                       return Padding(
                         padding: const EdgeInsets.all(10),
@@ -237,16 +259,24 @@ class _page0State extends State<page0> {
                                               onPressed: () {},
                                               icon: Icon(Icons.share)),
                                           IconButton(
+                                            onPressed: () {
+                                              print(artImageUrl);
+                                              //call on there
+                                              updatesaved(
+                                                  context,
+                                                  artImageUrl,
+                                                  artDescription,
+                                                  userProfileUrl,
+                                                  amount);
+                                            },
+                                            icon: Icon(Icons.bookmark),
+                                          ),
+                                          TextButton(
                                               onPressed: () {
-                                                print(artImageUrl);
-                                                //call on there
-                                                updatesaved(
-                                                    context,
-                                                    artImageUrl,
-                                                    artDescription,
-                                                    userProfileUrl);
+                                                bid(context,
+                                                    artsArray[index]['amount']);
                                               },
-                                              icon: Icon(Icons.bookmark))
+                                              child: Text(amount))
                                         ],
                                       ),
                                     ),

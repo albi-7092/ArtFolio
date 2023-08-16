@@ -20,9 +20,11 @@ class _upload_artState extends State<upload_art> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
   TextEditingController descriptor = TextEditingController();
+  TextEditingController amount = TextEditingController();
   final ImagePicker picker = ImagePicker();
   File? fileimage;
   XFile? image;
+  final _formkey = GlobalKey<FormState>();
   Future<void> pickImage() async {
     try {
       image = await picker.pickImage(source: ImageSource.gallery);
@@ -80,6 +82,7 @@ class _upload_artState extends State<upload_art> {
               {
                 'url': imageUrl,
                 'descriptor': descriptorText,
+                'amount': amount.text
               }
             ],
           ),
@@ -166,54 +169,76 @@ class _upload_artState extends State<upload_art> {
                 : Padding(
                     padding:
                         const EdgeInsets.only(top: 20, left: 10, right: 10),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 500,
-                          height: 500,
-                          decoration: BoxDecoration(
-                              image: DecorationImage(
-                                  image: FileImage(fileimage!))),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                              top: 20, left: 10, right: 10),
-                          child: TextField(
-                            controller: descriptor,
-                            decoration: const InputDecoration(
-                                hintText: 'Describe your Art ..'),
+                    child: Form(
+                      key: _formkey,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 350,
+                            height: 350,
+                            decoration: BoxDecoration(
+                                image: DecorationImage(
+                                    image: FileImage(fileimage!))),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF17203A),
-                                ),
-                                child: const Text('Discard'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  if (fileimage != null &&
-                                      descriptor.text != '') {
-                                    update();
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF17203A),
-                                ),
-                                child: const Text('post'),
-                              )
-                            ],
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                top: 20, left: 10, right: 10),
+                            child: TextFormField(
+                              validator: (value) {
+                                if (value == '') {
+                                  return 'Field is required';
+                                }
+                                return null;
+                              },
+                              controller: descriptor,
+                              decoration: const InputDecoration(
+                                  hintText: 'Describe your Art ..'),
+                            ),
                           ),
-                        )
-                      ],
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: TextFormField(
+                              controller: amount,
+                              decoration: InputDecoration(hintText: 'amount'),
+                              validator: (value) {
+                                if (value == '') {
+                                  return 'Field is required';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF17203A),
+                                  ),
+                                  child: const Text('Discard'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (_formkey.currentState!.validate() &&
+                                        fileimage != null) {
+                                      update();
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF17203A),
+                                  ),
+                                  child: const Text('post'),
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
                     ),
                   ),
           ],
