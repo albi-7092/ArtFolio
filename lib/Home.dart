@@ -1,16 +1,18 @@
 import 'package:artfolio/Profile.dart';
+import 'package:artfolio/bidupdate.dart';
+
 import 'package:artfolio/refmodel.dart';
 import 'package:artfolio/upload_art.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:like_button/like_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'Login.dart';
 
 String profile_img = '';
 String about = '';
-List<dynamic> artsArray = [];
+
 List<dynamic> savedArray = [];
+List<dynamic> artsArray = [];
 
 class Home extends StatefulWidget {
   @override
@@ -21,7 +23,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     // TODO: implement initState
-
+    loaddata();
     super.initState();
   }
 
@@ -45,12 +47,6 @@ class _HomeState extends State<Home> {
             // print('name :$name');
             // print('Array:$artsArray');
           });
-          // String desc = '';
-          // int length = artsArray.length;
-          // for (int i = 0; i < length; i++) {
-          //   desc = artsArray[i]['descriptor'];
-          //   print('Description :$desc');
-          // }
         }
       },
     );
@@ -58,7 +54,6 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    loaddata();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF17203A),
@@ -90,8 +85,8 @@ class _HomeState extends State<Home> {
       body: PageView(
         controller: controller,
         children: [
-          Container(color: Colors.white, child: page0()),
-          Container(color: Colors.white, child: page1()),
+          Container(color: Colors.white, child: page0(artsArray)),
+          Container(color: Colors.white, child: page1(savedArray)),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -155,30 +150,14 @@ Future<void> updatesaved(BuildContext ctx, image_url, String description,
 }
 
 class page0 extends StatefulWidget {
+  final List<dynamic> artsArray;
+
+  page0(this.artsArray);
   @override
   State<page0> createState() => _page0State();
 }
 
 class _page0State extends State<page0> {
-  bid(BuildContext context, String x) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Center(child: Text('ArtFolio')),
-          content: Text("current bid =$x"),
-          actions: [
-            TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('OK'))
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
@@ -191,7 +170,17 @@ class _page0State extends State<page0> {
               final DocumentSnapshot userSnap = snapshot.data.docs[index];
               String userProfileUrl = userSnap['profile_img'];
               String publisherNamed = userSnap['name'];
-              List<dynamic> artsArray = userSnap['arts'];
+              String doc_id = userSnap['doc_id'];
+
+              var artsData = userSnap['arts']; // Let's change this line
+
+              if (artsData is! List) {
+                print('Arts data is not a List: ${artsData.runtimeType}');
+                print('Data: $artsData');
+                return Container();
+              }
+
+              List<dynamic> artsArray = artsData;
 
               return Column(
                 children: [
@@ -200,106 +189,79 @@ class _page0State extends State<page0> {
                     physics: NeverScrollableScrollPhysics(),
                     itemCount: artsArray.length,
                     itemBuilder: (context, index) {
-                      String artImageUrl = artsArray[index]['url'];
-                      String artDescription = artsArray[index]['descriptor'];
-                      String amount = artsArray[index]['amount'];
-
-                      return Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Container(
-                          // color: Colors.amber,
-                          width: 500,
-                          height: 620,
-                          child: Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundImage:
-                                          NetworkImage(userProfileUrl),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text(
-                                        publisherNamed,
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    )
-                                  ],
+                      // Rest of your code...
+                      //artsArray[index]['descriptor']
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundImage: NetworkImage(userProfileUrl),
                                 ),
-                              ),
-                              Container(
-                                height: 410,
-                                width: 350,
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                    fit: BoxFit.cover,
-                                    image: NetworkImage(artImageUrl),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    publisherNamed,
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Container(
+                              width: 400,
+                              height: 500,
+                              decoration: BoxDecoration(
+                                image: DecorationImage(
+                                  fit: BoxFit.cover,
+                                  image: NetworkImage(
+                                    artsArray[index]['url'],
                                   ),
                                 ),
                               ),
-                              Divider(),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Row(
-                                        children: [
-                                          LikeButton(),
-                                          IconButton(
-                                              onPressed: () {},
-                                              icon: Icon(Icons.comment)),
-                                          IconButton(
-                                              onPressed: () {},
-                                              icon: Icon(Icons.share)),
-                                          IconButton(
-                                            onPressed: () {
-                                              print(artImageUrl);
-                                              //call on there
-                                              updatesaved(
-                                                  context,
-                                                  artImageUrl,
-                                                  artDescription,
-                                                  userProfileUrl,
-                                                  amount);
-                                            },
-                                            icon: Icon(Icons.bookmark),
-                                          ),
-                                          TextButton(
-                                              onPressed: () {
-                                                bid(context,
-                                                    artsArray[index]['amount']);
-                                              },
-                                              child: Text(amount))
-                                        ],
-                                      ),
-                                    ),
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundImage:
-                                              NetworkImage(userProfileUrl),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                            artDescription,
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 15,
+                                  backgroundImage: NetworkImage(userProfileUrl),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    artsArray[index]['descriptor'],
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (ctx) {
+                                          return bidupdate(
+                                              doc_id, index.toString());
+                                        },
+                                      ),
+                                    );
+                                  },
+                                  child: Text(artsArray[index]['amount']),
+                                )
+                              ],
+                            ),
+                          ),
+                          Divider(),
+                        ],
                       );
                     },
                   ),
@@ -316,6 +278,9 @@ class _page0State extends State<page0> {
 }
 
 class page1 extends StatelessWidget {
+  final List<dynamic> savedArray;
+
+  page1(this.savedArray);
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
